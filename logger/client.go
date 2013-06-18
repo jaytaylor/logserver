@@ -5,7 +5,7 @@ import (
 	"net"
 	"time"
 
-	"github.com/sendhub/log"
+	"github.com/Sendhub/logserver"
 )
 
 type (
