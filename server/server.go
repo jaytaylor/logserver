@@ -52,7 +52,6 @@ func (this *Server) removeListener(listener *Listener) {
 	this.listeners = nls
 }
 func (this *Server) receiveEntry(entry Entry) {
-	log.Printf("[DEBUG] %v", entry)
 	this.history.Add(entry)
 	// Push an entry on to the end of the channel,
 	//   if the channel is full remove the first entry

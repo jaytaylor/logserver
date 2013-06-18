@@ -1,6 +1,7 @@
 package server
 
 import (
+	"log"
 	"log/syslog"
 	"time"
 
@@ -37,6 +38,7 @@ func (this *Server) StartDrainer(address string, filter EntryFilter) *Drainer {
 		for entry := range Throttle(c, 100) {
 			for {
 				if w == nil {
+					log.Printf("connecting to syslog://%v\n", address)
 					w, err = syslog.Dial("tcp", address, syslog.LOG_INFO, "")
 					if err != nil {
 						w = nil
