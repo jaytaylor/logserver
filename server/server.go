@@ -17,18 +17,13 @@ type (
 		LastEntry time.Time
 		Filter    EntryFilter
 	}
-	Drain struct {
-		Listener *Listener
-	}
 	Server struct {
 		AddListener    chan *Listener
-		AddDrain       chan *Drain
 		ReceiveEntry   chan Entry
 		RemoveListener chan *Listener
-		RemoveDrain    chan *Drain
 		listeners      []*Listener
 		history        History
-		drains         []*Drain
+		drains         []*Drainer
 	}
 )
 
@@ -46,21 +41,6 @@ func (this *Server) addListener(listener *Listener) {
 		}
 	}
 
-}
-func (this *Server) addDrain(drain *Drain) {
-	this.drains = append(this.drains, drain)
-	this.addListener(drain.Listener)
-}
-func (this *Server) removeDrain(drain *Drain) {
-	nds := make([]*Drain, 0, len(this.drains)-1)
-	for _, thisDrain := range this.drains {
-		if drain != thisDrain {
-			nds = append(nds, thisDrain)
-		} else {
-			this.removeListener(thisDrain.Listener)
-		}
-	}
-	this.drains = nds
 }
 func (this *Server) removeListener(listener *Listener) {
 	nls := make([]*Listener, 0, len(this.listeners)-1)
@@ -105,9 +85,7 @@ func Start() (*Server, error) {
 		ReceiveEntry:   make(chan Entry),
 		listeners:      make([]*Listener, 0),
 		AddListener:    make(chan *Listener),
-		AddDrain:       make(chan *Drain),
 		RemoveListener: make(chan *Listener),
-		RemoveDrain:    make(chan *Drain),
 		history: History{
 			Position: 0,
 			Size:     0,
@@ -139,10 +117,6 @@ func Start() (*Server, error) {
 			// Add a listener to the list
 			case listener := <-this.AddListener:
 				this.addListener(listener)
-			case drain := <-this.AddDrain:
-				this.addDrain(drain)
-			case drain := <-this.RemoveDrain:
-				this.removeDrain(drain)
 			// Remove a listener
 			case listener := <-this.RemoveListener:
 				this.removeListener(listener)

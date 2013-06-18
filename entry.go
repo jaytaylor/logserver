@@ -64,6 +64,7 @@ func Throttle(c <-chan Entry, sz int) <-chan Entry {
 			default:
 			}
 		}
+		close(buffer)
 	}()
 	return buffer
 }
