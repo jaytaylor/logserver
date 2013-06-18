@@ -29,7 +29,6 @@ type (
 
 func (this *Server) addListener(listener *Listener) {
 	this.listeners = append(this.listeners, listener)
-	timeout := time.After(time.Second * 1)
 	for entry := range this.history.GetEntriesSince(listener.LastEntry) {
 		if !listener.Filter.Include(entry) {
 			continue
