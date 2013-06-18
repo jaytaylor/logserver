@@ -5,7 +5,7 @@ import (
 	"net"
 	"time"
 
-	"github.com/Sendhub/logserver"
+	. "github.com/Sendhub/logserver"
 )
 
 type (
@@ -21,15 +21,15 @@ func Dial(host, application, process string) (*Client, error) {
 		process:     process,
 	}
 	var err error
-	this.conn, err = net.Dial("tcp", host+":"+fmt.Sprint(log.Port))
+	this.conn, err = net.Dial("tcp", host+":"+fmt.Sprint(Port))
 	if err != nil {
 		return this, err
 	}
-	return this, log.Write(this.conn, "logger")
+	return this, Write(this.conn, "logger")
 }
 
 func (this *Client) Send(bs []byte) error {
-	return log.Entry{
+	return Entry{
 		Time:        time.Now(),
 		Application: this.application,
 		Process:     this.process,
