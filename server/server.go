@@ -34,11 +34,7 @@ func (this *Server) addListener(listener *Listener) {
 		if !listener.Filter.Include(entry) {
 			continue
 		}
-		select {
-		case listener.Channel <- entry:
-		case <-timeout:
-			break
-		}
+		listener.Channel <- entry
 	}
 
 }
@@ -61,21 +57,7 @@ func (this *Server) receiveEntry(entry Entry) {
 			continue
 		}
 
-		select {
-		case listener.Channel <- entry:
-			continue
-		default:
-		}
-
-		select {
-		case <-listener.Channel:
-		default:
-		}
-
-		select {
-		case listener.Channel <- entry:
-		default:
-		}
+		listener.Channel <- entry
 	}
 }
 
