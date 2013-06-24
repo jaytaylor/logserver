@@ -151,7 +151,7 @@ func (this *Server) StartListener(w io.Writer, filter EntryFilter) error {
 	this.AddListener <- listener
 
 	for entry := range Throttle(c, 100) {
-		err := Write(w, entry.Data)
+		_, err := w.Write(entry.Data)
 		if err != nil {
 			return err
 		}
