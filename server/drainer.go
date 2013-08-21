@@ -57,7 +57,7 @@ func (this *Server) StartDrainer(address string, filter EntryFilter) *Drainer {
 					}
 				}
 				// Send the message
-				_, err = w.Write(entry.Data)
+				_, err = w.Write(entry.Line())
 				if err != nil {
 					w.Close()
 					w = nil

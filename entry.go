@@ -20,6 +20,10 @@ type (
 	}
 )
 
+func (this *Entry) Line() []byte {
+	return append([]byte(this.Time.String()+" app["+this.Process+"]: "), this.Data...)
+}
+
 func (this EntryFilter) Include(entry Entry) bool {
 	if !(this.Application == "" || this.Application == entry.Application) {
 		return false

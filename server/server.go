@@ -27,39 +27,6 @@ type (
 	}
 )
 
-func (this *Server) addListener(listener *Listener) {
-	this.listeners = append(this.listeners, listener)
-	for entry := range this.history.GetEntriesSince(listener.LastEntry) {
-		if !listener.Filter.Include(entry) {
-			continue
-		}
-		listener.Channel <- entry
-	}
-
-}
-func (this *Server) removeListener(listener *Listener) {
-	nls := make([]*Listener, 0, len(this.listeners)-1)
-	for _, thisListener := range this.listeners {
-		if listener != thisListener {
-			nls = append(nls, thisListener)
-		}
-	}
-	this.listeners = nls
-}
-func (this *Server) receiveEntry(entry Entry) {
-	this.history.Add(entry)
-	// Push an entry on to the end of the channel,
-	//   if the channel is full remove the first entry
-	//   and try to push it on the end again
-	for _, listener := range this.listeners {
-		if !listener.Filter.Include(entry) {
-			continue
-		}
-
-		listener.Channel <- entry
-	}
-}
-
 func Start() (*Server, error) {
 	this := &Server{
 		ReceiveEntry:   make(chan Entry),
@@ -74,7 +41,7 @@ func Start() (*Server, error) {
 		},
 	}
 
-	log.Printf("starting logging server on: %v\n", Port)
+	log.Printf("starting logging server on port: %v\n", Port)
 	ln, err := net.Listen("tcp", ":"+fmt.Sprint(Port))
 	if err != nil {
 		return this, err
@@ -94,13 +61,13 @@ func Start() (*Server, error) {
 	go func() {
 		for {
 			select {
-			// Add a listener to the list
+			// Add a listener to the list.
 			case listener := <-this.AddListener:
 				this.addListener(listener)
-			// Remove a listener
+			// Remove a listener.
 			case listener := <-this.RemoveListener:
 				this.removeListener(listener)
-			// Receive a message
+			// Receive a message.
 			case entry, ok := <-this.ReceiveEntry:
 				if !ok {
 					break
@@ -126,7 +93,6 @@ func (this *Server) handleConnection(conn net.Conn) {
 		this.handleLogger(conn)
 	}
 }
-
 func (this *Server) handleLogger(conn net.Conn) {
 	reader := bufio.NewReader(conn)
 	for {
@@ -136,6 +102,38 @@ func (this *Server) handleLogger(conn net.Conn) {
 			break
 		}
 		this.ReceiveEntry <- entry
+	}
+}
+func (this *Server) addListener(listener *Listener) {
+	this.listeners = append(this.listeners, listener)
+	for entry := range this.history.GetEntriesSince(listener.LastEntry) {
+		if !listener.Filter.Include(entry) {
+			continue
+		}
+		listener.Channel <- entry
+	}
+
+}
+func (this *Server) removeListener(listener *Listener) {
+	nls := make([]*Listener, 0, len(this.listeners)-1)
+	for _, thisListener := range this.listeners {
+		if listener != thisListener {
+			nls = append(nls, thisListener)
+		}
+	}
+	this.listeners = nls
+}
+func (this *Server) receiveEntry(entry Entry) {
+	this.history.Add(entry)
+	// Push an entry on to the end of the channel,
+	//   if the channel is full remove the first entry
+	//   and try to push it on the end again.
+	for _, listener := range this.listeners {
+		if !listener.Filter.Include(entry) {
+			continue
+		}
+
+		listener.Channel <- entry
 	}
 }
 
@@ -151,7 +149,7 @@ func (this *Server) StartListener(w io.Writer, filter EntryFilter) error {
 	this.AddListener <- listener
 
 	for entry := range Throttle(c, 100) {
-		_, err := w.Write(entry.Data)
+		_, err := w.Write(entry.Line())
 		if err != nil {
 			return err
 		}
