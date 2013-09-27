@@ -21,7 +21,7 @@ type (
 )
 
 func (this *Entry) Line() []byte {
-	return append([]byte(this.Time.String()+" app["+this.Process+"]: "), this.Data...)
+	return append([]byte(this.Time.String()+" "+this.Application+"["+this.Process+"]: "), this.Data...)
 }
 
 func (this EntryFilter) Include(entry Entry) bool {
