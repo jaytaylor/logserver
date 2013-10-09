@@ -88,7 +88,7 @@ func (this *HaProxyLogLine) ToEntry() (*Entry, error) {
 	if !ok || len(app) == 0 {
 		return nil, fmt.Errorf("failed to extract app/backend from payload=%v", string(*this.Payload))
 	}
-	fmt.Printf("APP=%v\n", app)
+	//fmt.Printf("APP=%v\n", app)
 
 	acceptTsStr, ok := matches["acceptTs"]
 	if !ok {
