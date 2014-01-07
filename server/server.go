@@ -9,7 +9,7 @@ import (
 	"regexp"
 	"time"
 
-	. "github.com/Sendhub/logserver"
+	. "github.com/jaytaylor/logserver"
 )
 
 type (
