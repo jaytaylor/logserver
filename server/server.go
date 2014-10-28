@@ -109,6 +109,7 @@ func (this *HaProxyLogLine) ToEntry() (*Entry, error) {
 		clientIp, _ := matches["clientIp"]
 		server, _ := matches["server"]
 		tConnect, _ := matches["tc"]
+		tWait , _ := matches["tw"]
 		tQueue, _ := matches["tq"]
 		tRequest, _ := matches["tr"]
 		tTotal, _ := matches["tt"]
@@ -116,8 +117,8 @@ func (this *HaProxyLogLine) ToEntry() (*Entry, error) {
 		bytesRead, _ := matches["bytesRead"]
 
 		data = []byte(fmt.Sprintf(
-			"method=%v path=%v client=%v dyno=%v status=%v bytes=%v conn=%vms queue=%vms svc=%vms tot=%vms\n",
-			method, path, clientIp, server, statusCode, bytesRead, tConnect, tQueue, tRequest, tTotal,
+			"method=%v path=%v client=%v dyno=%v status=%v bytes=%v conn=%vms wait=%vms queue=%vms svc=%vms tot=%vms\n",
+			method, path, clientIp, server, statusCode, bytesRead, tConnect, tWait, tQueue, tRequest, tTotal,
 		))
 	}
 
