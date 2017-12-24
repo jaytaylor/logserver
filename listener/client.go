@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"strings"
 	"time"
 
 	"github.com/jaytaylor/logserver"
@@ -19,7 +20,10 @@ type (
 func Dial(host string) (*Client, error) {
 	this := &Client{}
 	var err error
-	this.conn, err = net.Dial("tcp", host+":"+fmt.Sprint(log.Port))
+	if !strings.Contains(host, ":") {
+		host = fmt.Sprintf("%v:%v", host, log.DefaultPort)
+	}
+	this.conn, err = net.Dial("tcp", host)
 	if err != nil {
 		return this, err
 	}

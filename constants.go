@@ -1,5 +1,3 @@
 package log
 
-const (
-	Port = 9998
-)
+const DefaultPort = 9998

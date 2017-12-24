@@ -12,28 +12,7 @@ import (
 	. "github.com/jaytaylor/logserver"
 )
 
-type (
-	Listener struct {
-		Channel   chan Entry
-		LastEntry time.Time
-		Filter    EntryFilter
-	}
-	Server struct {
-		AddListener    chan *Listener
-		ReceiveEntry   chan Entry
-		RemoveListener chan *Listener
-		listeners      []*Listener
-		history        History
-		drains         []*Drainer
-	}
-	HaProxyLogLine struct {
-		Payload *[]byte
-	}
-)
-
-const (
-	haProxyTsLayout = "2/Jan/2006:15:04:05.000"
-)
+const haProxyTsLayout = "2/Jan/2006:15:04:05.000"
 
 var (
 	// NB: See section 8.2.3 of http://haproxy.1wt.eu/download/1.5/doc/configuration.txt to see HAProxy log format details.
@@ -61,6 +40,26 @@ var (
 		`)`,
 	)
 )
+
+type Listener struct {
+	Channel   chan Entry
+	LastEntry time.Time
+	Filter    EntryFilter
+}
+
+type Server struct {
+	ListenAddr     string
+	AddListener    chan *Listener
+	ReceiveEntry   chan Entry
+	RemoveListener chan *Listener
+	listeners      []*Listener
+	history        History
+	drains         []*Drainer
+}
+
+type HaProxyLogLine struct {
+	Payload *[]byte
+}
 
 // Generic submatch mapper.  Returns nil if no match.
 func RegexpSubmatchesToMap(re *regexp.Regexp, input *[]byte) map[string]string {
@@ -109,7 +108,7 @@ func (this *HaProxyLogLine) ToEntry() (*Entry, error) {
 		clientIp, _ := matches["clientIp"]
 		server, _ := matches["server"]
 		tConnect, _ := matches["tc"]
-		tWait , _ := matches["tw"]
+		tWait, _ := matches["tw"]
 		tQueue, _ := matches["tq"]
 		tRequest, _ := matches["tr"]
 		tTotal, _ := matches["tt"]
@@ -131,8 +130,8 @@ func (this *HaProxyLogLine) ToEntry() (*Entry, error) {
 	return entry, nil
 }
 
-func Start() (*Server, error) {
-	this := &Server{
+func Start(listenAddr ...string) (*Server, error) {
+	server := &Server{
 		ReceiveEntry:   make(chan Entry),
 		listeners:      make([]*Listener, 0),
 		AddListener:    make(chan *Listener),
@@ -145,12 +144,17 @@ func Start() (*Server, error) {
 		},
 	}
 
-	log.Printf("starting log listener tcp+udp servers on port: %v\n", Port)
+	if len(listenAddr) > 0 {
+		server.ListenAddr = listenAddr[0]
+	}
+	server.init()
+
+	log.Printf("starting log listener tcp+udp servers on %v\n", server.ListenAddr)
 
 	// TCP listener.
-	tcpLn, err := net.Listen("tcp", ":"+fmt.Sprint(Port))
+	tcpLn, err := net.Listen("tcp", server.ListenAddr)
 	if err != nil {
-		return this, err
+		return nil, err
 	}
 	go func() {
 		for {
@@ -160,18 +164,18 @@ func Start() (*Server, error) {
 				continue
 			}
 			log.Printf("[%v] connected\n", conn.RemoteAddr())
-			go this.handleTcpConnection(conn)
+			go server.handleTcpConnection(conn)
 		}
 	}()
 
 	// UDP listener.
-	udpAddress, err := net.ResolveUDPAddr("udp", ":"+fmt.Sprint(Port))
+	udpAddress, err := net.ResolveUDPAddr("udp", server.ListenAddr)
 	if err != nil {
-		return this, err
+		return nil, err
 	}
 	udpLn, err := net.ListenUDP("udp", udpAddress)
 	if err != nil {
-		return this, err
+		return nil, err
 	}
 	go func() {
 		for {
@@ -181,7 +185,7 @@ func Start() (*Server, error) {
 				fmt.Printf("udp reader error: %v\n", err)
 				continue
 			}
-			go this.handleUdpPayLoad(&payload, numBytesRead)
+			go server.handleUdpPayLoad(&payload, numBytesRead)
 		}
 	}()
 
@@ -189,22 +193,22 @@ func Start() (*Server, error) {
 		for {
 			select {
 			// Add a listener to the list.
-			case listener := <-this.AddListener:
-				this.addListener(listener)
+			case listener := <-server.AddListener:
+				server.addListener(listener)
 			// Remove a listener.
-			case listener := <-this.RemoveListener:
-				this.removeListener(listener)
+			case listener := <-server.RemoveListener:
+				server.removeListener(listener)
 			// Receive a message.
-			case entry, ok := <-this.ReceiveEntry:
+			case entry, ok := <-server.ReceiveEntry:
 				if !ok {
 					break
 				}
-				this.receiveEntry(entry)
+				server.receiveEntry(entry)
 			}
 		}
 	}()
 
-	return this, nil
+	return server, nil
 }
 func (this *Server) handleTcpConnection(conn net.Conn) {
 	defer conn.Close()
@@ -291,4 +295,10 @@ func (this *Server) StartListener(w io.Writer, filter EntryFilter) error {
 		}
 	}
 	return nil
+}
+
+func (this *Server) init() {
+	if this.ListenAddr == "" {
+		this.ListenAddr = fmt.Sprintf(":%v", DefaultPort)
+	}
 }
